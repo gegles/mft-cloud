@@ -14,25 +14,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
-su mftadmin
-cd /var/mqm/mft/bin
+#set -e
 
-export PATH=$PATH:/var/mqm/mft/bin
+#su mftadmin
+env
+
+echo "Who am I: $(whoami)"
+
+# cd /var/mqm/mft/bin
+# export PATH=$PATH:/var/mqm/mft/bin
+
 #export MQ_QMGR_NAME=QMT
 #export MQ_QMGR_HOST=158.175.87.102
 #export MQ_QMGR_PORT=31957
 #export MQ_QMGR_CHL=CLOUD.APP.SVRCONN
 #export MFT_AGENT_NAME=KX
 
-echo "Setting up FTE Environment for this Agent : " ${BFG_DATA}
-cp -f /usr/local/bin/MQMFTCredentials.xml  $HOME
-chmod go-rw $HOME/MQMFTCredentials.xml
-chmod go-rwx /usr/local/bin/MQMFTCredentials.xml
-pwd
-ls -l $HOME
-source fteCreateEnvironment
-
+echo "Setting up FTE Environment for this Agent"
+# cp -f /usr/local/bin/MQMFTCredentials.xml  $HOME
+# chmod go-rw $HOME/MQMFTCredentials.xml
+# chmod go-rwx /usr/local/bin/MQMFTCredentials.xml
+# pwd
+# ls -l $HOME
+source /opt/mqm/mft/bin/fteCreateEnvironment -d /var/mqm/mft/mftdata
+echo "Return code:$?"
 # Assumption is that a single queue manager will be used as Coorindation/Command/Agent.
 # User should have passed us the queue manager details as environment variables. 
 
@@ -45,17 +50,19 @@ fteSetupCommands -connectionQMgr  ${MQ_QMGR_NAME} -connectionQMgrHost ${MQ_QMGR_
 echo "Command manager setup completed"
 
 echo "Creating MFT Agent"
-fteCreateAgent -agentName ${MFT_AGENT_NAME} -agentQMgr ${MQ_QMGR_NAME} -agentQMgrHost ${MQ_QMGR_HOST} -agentQMgrPort ${MQ_QMGR_PORT} -agentQMgrChannel ${MQ_QMGR_CHL} -credentialsFile "/usr/local/bin/MQMFTCredentials.xml" -f
+#fteCreateAgent -agentName ${MFT_AGENT_NAME} -agentQMgr ${MQ_QMGR_NAME} -agentQMgrHost ${MQ_QMGR_HOST} -agentQMgrPort ${MQ_QMGR_PORT} -agentQMgrChannel ${MQ_QMGR_CHL} -mquserid mftadmin -mqpassword passw0rd -f
+fteCreateAgent -agentName ${MFT_AGENT_NAME} -agentQMgr ${MQ_QMGR_NAME} -agentQMgrHost ${MQ_QMGR_HOST} -agentQMgrPort ${MQ_QMGR_PORT} -agentQMgrChannel ${MQ_QMGR_CHL} -f
+#fteCreateAgent -agentName ${MFT_AGENT_NAME} -agentQMgr ${MQ_QMGR_NAME} -agentQMgrHost ${MQ_QMGR_HOST} -agentQMgrPort ${MQ_QMGR_PORT} -agentQMgrChannel ${MQ_QMGR_CHL} -agentQMgrAuthenticationCredentialsFile /home/mftadmin/MQMFTCredentials.xml -f
 echo "Agent creation was successful"
 
 
-if [ "${MFT_AGENT_NAME}" == "A1" ]; then
-  echo "Creating a sample file"
-  mkdir -p /tmp/demofiles
-  echo "This is a demo file created to test mft file transfer" > /tmp/demofiles/samplefile.txt
-else 
-  mkdir -p /tmp/dropboxfiles
-fi
+# if [ "${MFT_AGENT_NAME}" == "A1" ]; then
+#   echo "Creating a sample file"
+#   mkdir -p /tmp/demofiles
+#   echo "This is a demo file created to test mft file transfer" > /tmp/demofiles/samplefile.txt
+# else 
+#   mkdir -p /tmp/dropboxfiles
+# fi
 
 #echo "Starting MFT Agent...."
 fteStartAgent -p  ${MQ_QMGR_NAME} ${MFT_AGENT_NAME}

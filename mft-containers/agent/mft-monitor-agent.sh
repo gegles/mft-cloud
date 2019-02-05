@@ -16,8 +16,6 @@
 
 set -e
 
-cd /var/mqm/mft/bin
-
 state()
 {
   ftePingAgent -m ${MQ_QMGR_NAME} -w 10 ${MFT_AGENT_NAME} | awk -F ':' '/BFGCL0213I/{print $1}; NR in nr'

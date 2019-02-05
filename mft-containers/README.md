@@ -43,7 +43,7 @@ MQ Advanced supports running MFT Agents in docker containers and this guide will
         SSH: git clone git@github.com:darbhakiran/mft-containers.git
         ```
 * Download **9.1.0.0-IBM-MQFA-Redist-LinuxX64.tar.gz** from [IBM Fixcentral](https://www.ibm.com/support/fixcentral/) into mft-containers/agent/
-**Note: 9.1.0.0-IBM-MQFA-Redist-LinuxX64.tar.gz** has to be in same path as **Dockerfile-agent**.
+**Note: 9.1.0.0-IBM-MQFA-Redist-LinuxX64.tar.gz** has to be in same path as **agent/Dockerfile**.
 
 {:shortdesc}
 
@@ -84,7 +84,7 @@ All the cutomizations (.sh and .mqsc) files are copied into **/etc/mqm/mft/** pa
     First command will print docker information and second command will list all the available containers in your docker environment.
 3. Create a new customized mq image
     ```
-    docker build -t mqadvmft  -f Dockerfile-server
+    docker build -t mqadvmft  .
     ```
 4. Once the docker build is successful, run a new container of it, which is queue manager in container. This queue manager is to be used as coordination queue manager.
     ```
@@ -105,19 +105,15 @@ All the cutomizations (.sh and .mqsc) files are copied into **/etc/mqm/mft/** pa
 ### Agent setup for MFT Containers
 {: #mft_containers_agent_setup}
 
-Agent package contains a Dockerfile-agent to build the MFT agent docker image. MFT Agent is setup and started as part of the **mqft.sh** script. This package assumes a single queue manager(**QM1**) as coordination queue manager, command queue manager and agent queue manager.
+Agent package contains a Dockerfile to build the MFT agent docker image. MFT Agent is setup and started as part of the **mqft.sh** script. This package assumes a single queue manager(**QM1**) as coordination queue manager, command queue manager and agent queue manager.
 **Note:** As per your application architecture, you can consider to have separate queue managers for coordination, command and agents.
 
-1. Copy the MFT redistributable package: **9.1.0.0-IBM-MQFA-Redist-LinuxX64.tar.gz** to the Agent directory. For example 
-    ```
-    On Linux: /home/mft-containers/agent 
-    On Windows: %HOMEDRIVE$\mft-containers/agent 
-    ```
+1. Download or get the URL for the MQ File Agent redistributable bundle: **9.\*-IBM-MQFA-Redist-LinuxX64.tar.gz**.
 2. Open a command shell and navigate to path of **mft-containers/agent** repository. For example */home/mft-containers/server*(on Linux) or *C:\\mft-containers\\server*(on Windows).  
 
 3. Build mft agent image.
     ```
-    docker build -t mftagentredist -f Dockerfile-agent
+    docker build --build-args MQFA_REDIST=<URL OR PATH TO MQFA_REDIST_BUNDLE> -t mftagent .
     ```
 4. We will create two agents as part of this document to demonstrate mft agents in container. These agents are **AGENTSRC** and **AGENTDEST**. As a first step of agent configuration, we have to create their congfiguration on coordination queue manager.
     ```
@@ -130,14 +126,14 @@ Agent package contains a Dockerfile-agent to build the MFT agent docker image. M
     
 5. Once the docker-agent build is successful, run a new container of it, which is agent in container. 
     ```
-    docker run --env MQ_QMGR_NAME=QM1  --env MQ_QMGR_HOST=<docker-host-ip> --env MQ_QMGR_PORT=1414 --env MQ_QMGR_CHL=MFT.SVRCONN --env MFT_AGENT_NAME=AGENTSRC -d --name=AGENTSRC mftagentredist
+    docker run --env MQ_QMGR_NAME=QM1  --env MQ_QMGR_HOST=<docker-host-ip> --env MQ_QMGR_PORT=1414 --env MQ_QMGR_CHL=MFT.SVRCONN --env MFT_AGENT_NAME=AGENTSRC -d --name=AGENTSRC mftagent
     
-    docker run --env MQ_QMGR_NAME=QM1  --env MQ_QMGR_HOST=<docker-host-ip> --env MQ_QMGR_PORT=1414 --env MQ_QMGR_CHL=MFT.SVRCONN --env MFT_AGENT_NAME=AGENTDEST -d --name=AGENTDEST mftagentredist
+    docker run --env MQ_QMGR_NAME=QM1  --env MQ_QMGR_HOST=<docker-host-ip> --env MQ_QMGR_PORT=1414 --env MQ_QMGR_CHL=MFT.SVRCONN --env MFT_AGENT_NAME=AGENTDEST -d --name=AGENTDEST mftagent
     ```
     **Note:** 
     1. <docker-host-ip>: Is the IP Address of the docker host. This could be found out by running `docker inspect` command and look for ipv4address field.
     2. MQ_QMGR_NAME=QM1: Is the queue manager we created and configured as coordination queue manager in above section.
-    3. mftagentredist: Is the docker image of mft redistributable agents.
+    3. mftagent: Is the docker image of mft redistributable agents.
     
 6. Run the below command to list the docker containers, find newly created containers **AGENTSRC**, **AGENTDEST** and make a note of their container-ids.
     ```

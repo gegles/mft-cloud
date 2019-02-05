@@ -11,9 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM ubuntu:16.04
-
-COPY *-IBM-MQFA-Redist-LinuxX64.tar.gz *.sh *.xml /tmp/
+FROM ubuntu:latest
 
 RUN export DEBIAN_FRONTEND=noninteractive \
   # Install additional packages required by MQ, this install process and the runtime scripts
@@ -39,26 +37,31 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     util-linux \
     inotify-tools \
     locales \
-    s3fs \
-  # Download and extract the MQ installation files
-  && mkdir -p /var/mqm/mft \
-  && useradd mftadmin \
-  && echo mftadmin:passw0rd | chpasswd \
-  && mv /tmp/*.sh /usr/local/bin/  \
-  && chmod +x /usr/local/bin/*.sh \
-  && cd /var/mqm/mft \
-  && mv /tmp/*-IBM-MQFA-Redist-LinuxX64.tar.gz /var/mqm/mft/ \
-  && tar -zxvf ./*.tar.gz \
-  && apt-get update \
-  # Remove tar.gz files unpacked by RPM postinst scripts
-  && find /var/mqm/mft -name '*.tar.gz' -delete \
-  # Apply any bug fixes not included in base Ubuntu or MQ image.
-  # Don't upgrade everything based on Docker best practices https://docs.docker.com/engine/userguide/eng-image/dockerfile_best-practices/#run
-  && apt-get upgrade -y libkrb5-26-heimdal \
-  && apt-get upgrade -y libexpat1 \
-  # End of bug fixes
-  && rm -rf /var/lib/apt/lists/* \
+    s3fs
+
+# Extract the MQ installation files
+ADD  *-IBM-MQFA-Redist-LinuxX64.tar.gz /opt/mqm/mft/
+
+COPY *.sh /usr/local/bin/
+RUN  chmod +x /usr/local/bin/*.sh
+
+RUN rm -rf /var/lib/apt/lists/* \
   && echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
   && locale-gen
 
+RUN  useradd -ms /bin/bash mftadmin \
+  && echo mftadmin:passw0rd | chpasswd
+
+COPY --chown=mftadmin MQMFTCredentials.xml /home/mftadmin/
+RUN  chmod go-rw /home/mftadmin/MQMFTCredentials.xml
+
+RUN  mkdir -p /var/mqm/mft/mftdata/ \
+  && chown mftadmin /var/mqm/mft/mftdata 
+ENV BFG_DATA=/var/mqm/mft/mftdata
+
+ENV PATH="$PATH:/opt/mqm/mft/bin"
+
+USER mftadmin
+ENV HOME=/home/mftadmin
+#ENTRYPOINT ["su", "-c", "mqft.sh"]
 ENTRYPOINT ["mqft.sh"]
